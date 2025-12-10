@@ -1,1 +1,423 @@
+---
+title: "ANOVA Table"
+author: "Huiting Wu"
+date: "2023-04-13"
+output: pdf_document
+---
 
+# Load Libraries
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+# Demographics Data Frame
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# demographics data
+demo_df <- data.frame(
+  Characteristic = c(
+    "Age (yr)",
+    "Male sex (%)",
+    "Race: White (%)",
+    "Race: Black (%)",
+    "Race: Other (%)",
+    "Severity: Mild (%)",
+    "Severity: Moderate (%)",
+    "Severity: Severe (%)",
+    "Analgesic use: Nonprescription (%)",
+    "Analgesic use: Prescription (%)",
+    "Mean score: Knee symptoms",
+    "Mean score: Function",
+    "Anxiety",
+    "Depression",
+    "Expectations for benefit",
+    "Optimism",
+    "Satisfaction with general health",
+    "Social functioning",
+    "Somatization",
+    "Stress",
+    "Vitality"
+  ),
+  Placebo_Group = c(
+    52.0,
+    93.3,
+    60.0,
+    31.7,
+    8.3,
+    28.3,
+    46.7,
+    25.0,
+    70.0,
+    21.7,
+    49.4,
+    62.2,
+    27.0,
+    20.0,
+    3.5,
+    72.6,
+    39.3,
+    65.5,
+    11.3,
+    28.4,
+    54.8
+  ),
+  Lavage_Group = c(
+    51.2,
+    88.5,
+    59.0,
+    31.2,
+    9.9,
+    27.9,
+    45.9,
+    26.2,
+    67.2,
+    21.3,
+    50.2,
+    62.4,
+    30.2,
+    28.1,
+    3.5,
+    74.5,
+    43.7,
+    60.3,
+    9.6,
+    26.1,
+    52.7
+  ),
+  Debridement_Group = c(
+    53.6,
+    96.6,
+    61.0,
+    22.0,
+    17.0,
+    30.5,
+    45.8,
+    23.7,
+    64.4,
+    15.3,
+    51.4,
+    57.6,
+    28.4,
+    22.0,
+    3.6,
+    73.7,
+    46.5,
+    67.6,
+    10.0,
+    27.9,
+    57.7
+  ))
+
+# demographics SD where available
+demo_sd_df <- data.frame(
+  Characteristic = c(
+    "Age (yr)",
+    "Anxiety",
+    "Depression",
+    "Expectations for benefit",
+    "Optimism",
+    "Satisfaction with general health",
+    "Social functioning",
+    "Somatization",
+    "Stress",
+    "Vitality"
+  ),
+  Placebo_Group = c(
+    1.1,
+    21.0,
+    32.0,
+    1.0,
+    21.0,
+    25.1,
+    25.6,
+    12.7,
+    19.7,
+    21.0
+  ),
+  Lavage_Group = c(
+    10.5,
+    19.9,
+    37.2,
+    0.9,
+    19.4,
+    22.4,
+    23.9,
+    12.4,
+    18.2,
+    19.7
+  ),
+  Debridement_Group = c(
+    12.2,
+    22.4,
+    35.3,
+    1.1,
+    17.1,
+    24.8,
+    25.2,
+    10.7,
+    18.8,
+    19.3
+  ))
+
+knitr::kable(demo_df)
+```
+
+# Data From Graphs
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# graph 1
+pain_scale_df <- data.frame(
+  Time = c(0, 2, 6, 12, 36, 52, 78, 104),
+  Placebo = c(60, 59, 57, 56, 57, 53, 52, 55),
+  Lavage = c(61, 59, 57, 59, 59, 57, 56, 55),
+  Debridement = c(58, 59, 59, 58, 56, 50, 51, 53)
+)
+
+# graph 2
+AIMS2 <- data.frame(
+  Time = c(0, 2, 6, 12, 36, 52, 78, 104),
+  Placebo = c(60, 59, 57, 56, 57, 54, 52, 55),
+  Lavage = c(61, 59, 57, 59, 59, 57, 57, 56),
+  Debridement = c(58, 58, 59, 58, 55, 51, 51, 53)
+)
+```
+
+# Table 2
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Placebo group
+placebo_group <- data.frame(
+  No_with_data = c(59, 59, 57, 56, 57, 54, 52, 55),
+  Mean = c(59.5, 47.9, 50.8, 50.1, 50.0, 53.6, 55.6, 52.5),
+  SD = c(18.5, 23.9, 23.2, 21.3, 20.7, 22.1, 23.6, 25.1)
+)
+
+# Lavage group
+lavage_group <- data.frame(
+  No_with_data = c(61, 59, 57, 59, 59, 57, 57, 56),
+  Mean = c(59.3, 51.9, 52.4, 53.7, 54.8, 57.8, 55.4, 56.7),
+  SD = c(16.7, 20.3, 22.1, 23.1, 21.6, 23.5, 24.6, 24.1)
+)
+
+# Debridement group
+debridement_group <- data.frame(
+  No_with_data = c(58, 58, 59, 58, 55, 51, 51, 53),
+  Mean = c(59.3, 53.2, 49.9, 49.9, 52.0, 53.3, 50.7, 54.0),
+  SD = c(22.2, 21.7, 23.3, 21.7, 20.8, 25.4, 24.4, 23.3)
+)
+
+# Placebo vs Lavage comparison
+placebo_vs_lavage <- data.frame(
+  Mean_Difference = c(0.2, -4.0, -1.6, -3.6, -4.8, -4.2, 0.3, -4.2),
+  P_value = c(0.95, 0.33, 0.70, 0.39, 0.23, 0.34, 0.95, 0.37)
+)
+
+# Placebo vs Debridement comparison
+placebo_vs_debridement <- data.frame(
+  Mean_Difference = c(0.3, -5.2, 0.9, 0.3, -2.0, 0.3, 4.9, -1.5),
+  P_value = c(0.94, 0.22, 0.84, 0.95, 0.60, 0.95, 0.30, 0.75)
+)
+```
+
+# Table 3
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Placebo group
+placebo_group_2 <- data.frame(
+  No_with_data = c(59, 59, 56, 54, 54, 49, 46, 44),
+  Mean = c(48.5, 48.3, 45.9, 47.3, 47.0, 45.6, 48.5, 47.7),
+  SD = c(14.5, 13.4, 12.0, 16.0, 13.0, 10.2, 12.4, 12.0)
+)
+
+# Lavage group
+lavage_group_2 <- data.frame(
+  No_with_data = c(59, 57, 54, 55, 52, 54, 49, 50),
+  Mean = c(50.0, 53.0, 49.5, 48.8, 49.4, 50.4, 51.2, 53.2),
+  SD = c(14.3, 25.3, 19.4, 21.0, 20.4, 17.6, 18.8, 21.6)
+)
+
+# Debridement group
+debridement_group_2 <- data.frame(
+  No_with_data = c(58, 57, 58, 56, 54, 47, 44, 44),
+  Mean = c(52.1, 56.0, 51.7, 49.5, 49.8, 52.5, 52.8, 52.6),
+  SD = c(20.2, 21.8, 24.7, 17.4, 17.4, 20.3, 20.9, 16.4)
+)
+
+# Placebo vs Lavage comparison
+placebo_vs_lavage_2 <- data.frame(
+  Mean_Difference = c(-1.6, -4.6, -3.6, -1.4, -2.4, -4.9, -2.7, -5.5),
+  P_value = c(0.56, 0.22, 0.25, 0.69, 0.47, 0.09, 0.41, 0.13)
+)
+
+# Placebo vs Debridement comparison
+placebo_vs_debridement_2 <- data.frame(
+  Mean_Difference = c(-3.6, -7.7, -5.8, -2.2, -2.8, -6.9, -4.3, -4.9),
+  P_value = c(0.27, 0.02, 0.11, 0.49, 0.34, 0.04, 0.23, 0.11)
+)
+```
+
+# Simulate Data
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# set seed for reproducibility
+set.seed(331)
+
+# function to quickly make simulated data
+sim_data <- function(df, n, name) {
+  simulated_data <- NULL
+  for (i in 1:nrow(df)) {
+    mean <- df$Mean[i]
+    sd <- df$SD[i]
+    data <- data.frame(rnorm(n, mean, sd))
+    colnames(data) <- name[i]
+    
+    if (is.null(simulated_data)) {
+      simulated_data <- data
+    } else {
+      simulated_data <- cbind(simulated_data, data)
+    }
+  }
+  return(simulated_data)
+}
+
+# run means and SD through function above
+Time = c("before", "2 weeks", "6 weeks", "3 months", "6 months", 
+         "1 year", "18 months", "2 years")
+placebo_pain_sim <- sim_data(df=placebo_group, n=60, Time)
+lavage_pain_sim <- sim_data(lavage_group, n=61, Time)
+debridement_pain_sim <- sim_data(debridement_group, n=59, Time)
+
+placebo_AIMS2_sim <- sim_data(placebo_group_2, n=60, Time)
+lavage_AIMS2_sim <- sim_data(lavage_group_2, n=61, Time)
+debridement_AIMS2_sim <- sim_data(debridement_group_2, n=59, Time)
+
+# add treatment groups before making into data frame
+placebo_pain_sim <- mutate(placebo_pain_sim, Group="Placebo")
+lavage_pain_sim <- mutate(lavage_pain_sim, Group="Lavage")
+debridement_pain_sim <- mutate(debridement_pain_sim, Group="Debridement")
+
+placebo_AIMS2_sim <- mutate(placebo_AIMS2_sim, Group="Placebo")
+lavage_AIMS2_sim <- mutate(lavage_AIMS2_sim, Group="Lavage")
+debridement_AIMS2_sim <- mutate(debridement_AIMS2_sim, Group="Debridement")
+
+# combine to make 2 data frames we can now work with
+pain_df <- bind_rows(lavage_pain_sim, placebo_pain_sim, debridement_pain_sim)
+head(pain_df)
+
+AIMS2_df <- bind_rows(placebo_AIMS2_sim, lavage_AIMS2_sim, 
+                      debridement_AIMS2_sim)
+head(AIMS2_df)
+```
+
+## Kaytie: Anova table
+
+### Data of Score on the Physical functioning
+```{r warning=FALSE, message=FALSE, results='hide'}
+str(AIMS2_df)
+attach(AIMS2_df)
+# recreate a data frame with Response, time, and groups as the columns
+Response <- c(AIMS2_df[1:180,1], AIMS2_df[1:180,2], AIMS2_df[1:180,3], 
+              AIMS2_df[1:180,4], AIMS2_df[1:180,5], AIMS2_df[1:180,6], 
+              AIMS2_df[1:180,7], AIMS2_df[1:180,8])
+time <- rep(Time, each = 180)
+
+# create factors
+ftime <- as.factor(time)
+fgroups <- as.factor(Group)
+
+# create the data frame
+AIMS <- data.frame(Response, time, ftime, Group, fgroups)
+
+# level of the factors
+levels(fgroups)
+levels(ftime)
+
+# show the table
+AIMS
+
+# fit into a model
+model <- lm(Response ~ fgroups * ftime, AIMS)
+anova(model)
+# Both factor of groups and time are significant.
+# The interaction effect is significant with $\alpha$ = 0.1
+```
+
+### Data of Score on Pain Subscale of the Arthritis Impact Measurement
+```{r results='hide'}
+# recreate a data frame with response, time, and groups as the columns
+response <- c(pain_df[1:180,1], pain_df[1:180,2], pain_df[1:180,3], 
+              pain_df[1:180,4], pain_df[1:180,5], pain_df[1:180,6], 
+              pain_df[1:180,7], pain_df[1:180,8])
+Pain <- data.frame(response, time, ftime, Group, fgroups)
+
+# show the table
+Pain
+
+# fit into a model
+model1 <- lm(response ~ fgroups * ftime, Pain)
+anova(model1)
+# The factor groups is not significant. 
+# But the interaction effect is significant with $\alpha$ = 0.1
+```
+
+### Anova tables
+
+#### compare groups
+
+```{r message=FALSE}
+# compare mean scores on physical functioning between groups
+library(emmeans)
+lsmAIMS <- lsmeans(model, ~ fgroups)
+Tukey_Method <- summary(contrast(lsmAIMS, method = "pairwise", 
+                                 adjust = "tukey"), 
+                        infer = c(T,F), level = 0.99, side = "two-sided")
+Tukey_Method
+
+# compare mean scores on physical functioning 
+# between treatment groups and control groups
+Dunnet_Method <- summary(contrast(lsmAIMS, method = "trt.vs.ctrl", 
+                                  adjust = "mut", ref = 3),
+                         infer = c(T,F), level = 0.99, side = ">")
+Dunnet_Method
+
+
+# graph
+plot(Tukey_Method)
+plot(Dunnet_Method)
+```
+```{r message=FALSE}
+lsmPain <- lsmeans(model1, ~ fgroups)
+# compare mean scores on pain sub-scale of 
+# the Arthritis Impact Measurement between treatment groups and control groups
+Dunnet_method <- summary(contrast(lsmPain, method = "trt.vs.ctrl", 
+                                  adjust = "mut", ref = 3),
+                         infer = c(T,F), level = 0.99, side = ">")
+Dunnet_method
+plot(Dunnet_method)
+```
+
+#### compare times
+
+```{r message=FALSE}
+lsmAIMS1 <- lsmeans(model, ~ ftime)
+# compare mean scores on physical functioning between different time 
+# after treatment and before
+Dunnet_Method1 <- summary(contrast(lsmAIMS1, method = "trt.vs.ctrl", 
+                                   adjust = "mut", ref = 8),
+                         infer = c(T,F), level = 0.99, side = ">")
+Dunnet_Method1
+plot(Dunnet_Method1)
+```
+
+```{r message=FALSE}
+# compare mean scores on pain sub-scale of 
+# the Arthritis Impact Measurement between different time 
+# after treatment and before
+lsmPain1 <- lsmeans(model1, ~ ftime)
+Dunnet_method1 <- summary(contrast(lsmPain1, method = "trt.vs.ctrl", 
+                                   adjust = "mut", ref = 8),
+                         infer = c(T,F), level = 0.99, side = ">")
+Dunnet_method1
+plot(Dunnet_method1)
+```
